@@ -13,15 +13,68 @@
             this.editField = function (row, column, value, name, pk,active) {
                 var tagfixa = row + '_' + column;
                 var tag = 'lbl' + tagfixa;
-                setMapColumn(pk, name, value, column, active);
+                setMapColumn(pk, name, value, column, new this.InterfaceText('#txt' + tagfixa), active);
                 return '<label id="' + tag + '">' + value + '</label><input  value="' + value + '" name="' + name + '" id="txt' + tagfixa + '" style="width:100%;">';
             };
 
+            this.InterfaceText = function (idElement) {
+                var Element = idElement;
+
+                  
+                this.blur = function (action) {
+                    $(Element).blur(action);
+                };
+
+                this.attr = function (attribute) {
+                    return $(Element).attr(attribute);
+                };
+
+                this.val = function (args) {
+                    if (args) {
+                         $(Element).val(args);
+                    } else {
+                        return $(Element).val();  
+                    }
+                };
+
+                this.hide = function () {
+                    $(Element).hide();
+                };
+
+                return this;
+            };
+
+            this.InterfaceCk = function (idElement) {
+                var Element = idElement;
+
+                this.blur = function (action) {
+                    $(Element).blur(action);
+                };
+
+                this.attr = function (attribute) {
+                    return $(Element).attr(attribute);
+                };
+
+                this.val = function (args) {
+                    if (args) {
+                        $(Element).prop("checked", args);
+                    } else {
+                        return $(Element).prop("checked").toString();
+                    }
+                };
+
+
+                this.hide = function () {
+                    $(Element).hide();
+                };
+
+                return this;
+            };
 
             this.CheckField = function (row, column, value, name, pk, active) {
                 var tagfixa = row + '_' + column;
                 var tag = 'lbl' + tagfixa;
-                setMapColumn(pk, name, value, column, active);
+                setMapColumn(pk, name, value, column, new this.InterfaceCk('#ck' + tagfixa), active);
                 return '<label id="' + tag + '">' + value + '</label><input type="checkbox" value="' + pk + '" name="' + name + '" id="ck' + tagfixa + '" ' + (value ? 'checked' : '') + '>';
             };
 
@@ -52,7 +105,7 @@
                 });
             }
 
-            function setMapColumn(pk, name, value, column, active) {
+            function setMapColumn(pk, name, value, column, duck, active) {
                 if (currentPK !== pk) {
                     currentRow += 1;
                     columns[currentRow] = [];
@@ -60,6 +113,9 @@
                     columns[currentRow].setKeyColumn = function (key) {
                         this.Keys.push(key);
                     };
+                    columns[currentRow].ExistCollumn = function (key) {
+                       return !(typeof this[key] === 'undefined' || this[key] === null);
+                    }
                     currentPK = pk;
                 };
 
@@ -70,6 +126,7 @@
                 colmap['primaryKey'] = pk;
                 colmap['oldvalue'] = null;
                 colmap['active'] = active; 
+                colmap['duck'] = duck;
                 columns[currentRow]['c' + column] = colmap;
                 columns[currentRow].setKeyColumn('c' + column);
             }
@@ -77,8 +134,8 @@
             function setEdit(){
               table.on('click', 'tbody td', function () {
                 var c = table.cell( this ).index().column;
-                var r = table.cell( this ).index().row;
-                if (columns[r]['c' + c].column === c){
+                var r = table.cell(this).index().row;
+               if (columns[r].ExistCollumn('c' + c)){
                   var labelid='#'+$(this).children()[0].id;
                   var txtid='#'+$(this).children()[1].id;
                   $(labelid).hide();
@@ -86,33 +143,31 @@
                   $(txtid).val($(labelid).text());
                   $(txtid).show();
                   $(txtid).focus();
-                  $(txtid).blur(function(){
-                    labelid=$(this).attr('par');
-                    if( $(labelid).text()!==$(this).val() && ready){
-                        columns[r]['c' + c].oldvalue=$(labelid).text();
-                         var dados=[];
-                        var x = columns[r]['c' + c].name;
-                         var valor=$(this).val();
-                         dados.push({
-                            name:x,
-                            value:valor
-                         });
-                         ready=false;
-                        funcajax(dados, columns[r]['c' + c].primaryKey,c,function(result){
-                              if(result){
-                                $(labelid).text($(txtid).val());  
-                              }else{
-                                $(txtid).val($(labelid).text());
-                              }
-                              ready=true;
-                             $(txtid).hide();
-                             $(labelid).show();                         
-                         });
-                     }else{
-                        $(txtid).hide();
-                        $(labelid).show();                      
-                     }
-                  });
+                  columns[r]['c' + c].duck.blur(function () {
+                  labelid = columns[r]['c' + c].duck.attr('par');
+                        if ($(labelid).text() !== columns[r]['c' + c].duck.val() && ready) {
+                            columns[r]['c' + c].oldvalue = $(labelid).text();
+                            var dados = [];
+                            var x = columns[r]['c' + c].name;
+                            var valor = columns[r]['c' + c].duck.val();
+                            dados['name'] = x;
+                            dados['value'] = valor;
+                            ready = false;
+                            funcajax(dados, columns[r]['c' + c].primaryKey, c, function (result) {
+                                if (result) {
+                                    $(labelid).text(columns[r]['c' + c].duck.val());
+                                } else {
+                                    columns[r]['c' + c].duck().val($(labelid).text());
+                                }
+                                ready = true;
+                                columns[r]['c' + c].duck.hide();
+                                $(labelid).show();
+                            });
+                        } else {
+                            columns[r]['c' + c].duck.hide();
+                            $(labelid).show();
+                        }
+                    });
                 }
 
             } );
