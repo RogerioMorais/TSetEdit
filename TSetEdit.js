@@ -17,6 +17,32 @@
                 return '<label id="' + tag + '">' + value + '</label><input  value="' + value + '" name="' + name + '" id="txt' + tagfixa + '" style="width:100%;">';
             };
 
+            this.CheckField = function (row, column, value, name, pk, active) {
+                var tagfixa = row + '_' + column;
+                var tag = 'lbl' + tagfixa;
+                setMapColumn(pk, name, value, column, new this.InterfaceCk('#ck' + tagfixa), active);
+                return '<label id="' + tag + '">' + value + '</label><input type="checkbox" value="' + pk + '" name="' + name + '" id="ck' + tagfixa + '" ' + (value ? 'checked' : '') + '>';
+            };
+
+
+            this.SelectField = function (row, column, value, name, pk, active) {
+                var tagfixa = row + '_' + column;
+                var tag = 'lbl' + tagfixa;
+                var label = "";
+                var valsel = "";
+                var opts = "";
+                value.forEach(function (elem) {
+                    opts += "<option value=\"" + elem.value + "\"  " + (elem.selected?'selected':'') +">" + elem.label + "</option>";
+                    if (elem.selected) {
+                        label = elem.label;
+                        valsel = elem.value;
+                    }
+                });
+                setMapColumn(pk, name, valsel, column, new this.InterfaceSel('#cb' + tagfixa), active);
+                return '<label id="' + tag + '">' + label + '</label><select name="' + name + '" id="cb' + tagfixa + '">' + opts + "</select>"; 
+
+            };
+
             this.InterfaceText = function (idElement) {
                 var Element = idElement;
 
@@ -71,12 +97,36 @@
                 return this;
             };
 
-            this.CheckField = function (row, column, value, name, pk, active) {
-                var tagfixa = row + '_' + column;
-                var tag = 'lbl' + tagfixa;
-                setMapColumn(pk, name, value, column, new this.InterfaceCk('#ck' + tagfixa), active);
-                return '<label id="' + tag + '">' + value + '</label><input type="checkbox" value="' + pk + '" name="' + name + '" id="ck' + tagfixa + '" ' + (value ? 'checked' : '') + '>';
+            this.InterfaceSel = function (idElement) {
+                var Element = idElement;
+
+                this.blur = function (action) {
+                    $(Element).change(function () {
+                        $(Element).focusout();
+                    });
+                    $(Element).focusout(action);
+                };
+
+                this.attr = function (attribute) {
+                    return $(Element).attr(attribute);
+                };
+
+                this.val = function (args) {
+                    if (args) {
+                        $(Element).val(args);
+                    } else {
+                        return $(Element + " option:selected").val();
+                    }
+                };
+
+
+                this.hide = function () {
+                    $(Element).hide();
+                };
+
+                return this;
             };
+
 
             this.setTable = function (tab) {
                 table = tab;
@@ -100,7 +150,7 @@
             function hideInput(item) {
                 item.Keys.forEach(function (c) {
                     if (!item[c].active) {
-                        $('input[name="' + item[c].name + '"]').hide();
+                        item[c].duck.hide();
                     }
                 });
             }
@@ -143,9 +193,9 @@
                   $(txtid).val($(labelid).text());
                   $(txtid).show();
                   $(txtid).focus();
-                  columns[r]['c' + c].duck.blur(function () {
-                  labelid = columns[r]['c' + c].duck.attr('par');
-                        if ($(labelid).text() !== columns[r]['c' + c].duck.val() && ready) {
+                   columns[r]['c' + c].duck.blur(function () {
+                      labelid = columns[r]['c' + c].duck.attr('par');
+                      if ($(labelid).text() !== columns[r]['c' + c].duck.val() && ready) {
                             columns[r]['c' + c].oldvalue = $(labelid).text();
                             var dados = [];
                             var x = columns[r]['c' + c].name;
@@ -153,11 +203,11 @@
                             dados['name'] = x;
                             dados['value'] = valor;
                             ready = false;
-                            funcajax(dados, columns[r]['c' + c].primaryKey, c, function (result) {
-                                if (result) {
-                                    $(labelid).text(columns[r]['c' + c].duck.val());
+                          funcajax(dados, columns[r]['c' + c].primaryKey, c, function (result) {
+                              if (result) {
+                                  $(labelid).text(dados.value);
                                 } else {
-                                    columns[r]['c' + c].duck().val($(labelid).text());
+                                    columns[r]['c' + c].duck.val($(labelid).text());
                                 }
                                 ready = true;
                                 columns[r]['c' + c].duck.hide();
@@ -176,12 +226,3 @@
             }
  
         }
-
-
-
-
-
-
-
-
-
